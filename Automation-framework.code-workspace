@@ -1,10 +1,49 @@
+package com.bank.tests;
+import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+import static io.restassured.RestAssured.given;
+public class AuthTests {
+@Test
+public void BNK_API_001_authTokenGeneration() {
+RestAssured.baseURI = TestConfig.baseUrl();
+String body = """
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "."
-		}
-	]
+"username": "%s",
+"password": "%s"
 }
+""".formatted(TestConfig.username(), TestConfig.password());
+String response =
+given()
+.contentType("application/json")
+.body(body)
+.when()
+.post("/auth/login")
+.then()
+.statusCode(200)
+.extract()
+.asString();
+JsonPath jp = new JsonPath(response);
+String token = jp.getString("token");
+Assert.assertNotNull(token, "Token should not be null");
+Assert.assertTrue(token.length() > 10, "Token looks too short");
+}
+@Test
+public void BNK_API_002_authWithInvalidCredentials() {
+RestAssured.baseURI = TestConfig.baseUrl();
+String body = """
+{
+"username": "%s",
+"password": "%s"
+}
+""".formatted(TestConfig.username(), "wrongPassword!");
+given()
+.contentType("application/json")
+.body(body)
+.when()
+.post("/auth/login")
+}
+}
+.then()
+.statusCode(401); // sometimes 403 depending 
